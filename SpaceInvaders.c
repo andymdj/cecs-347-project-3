@@ -34,18 +34,6 @@
 // Onboard sw1(left push button): fire button 
 // Onboard sw2(right push button): game start button
 
-// Blue Nokia 5110
-// ---------------
-// Signal        (Nokia 5110) LaunchPad pin
-// Reset         (RST, pin 1) connected to PA7
-// SSI0Fss       (CE,  pin 2) connected to PA3
-// Data/Command  (DC,  pin 3) connected to PA6
-// SSI0Tx        (Din, pin 4) connected to PA5
-// SSI0Clk       (Clk, pin 5) connected to PA2
-// 3.3V          (Vcc, pin 6) power
-// back light    (BL,  pin 7) not connected, consists of 4 white LEDs which draw ~80mA total
-// Ground        (Gnd, pin 8) ground
-
 // Red SparkFun Nokia 5110 (LCD-10168)
 // -----------------------------------
 // Signal        (Nokia 5110) LaunchPad pin
