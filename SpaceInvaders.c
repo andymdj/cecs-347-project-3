@@ -51,7 +51,7 @@
 #include "PLL.h"
 #include <stdint.h>
 //#include "ADC.h"
-//#include "SysTick.h"  // for SysTick_Init()
+#include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
 
 // enemy ship that starts at the top of the screen (arms/mouth closed)
@@ -190,9 +190,6 @@ const unsigned char SmallExplosion0[] = {
  0xF0, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0xF0, 0x00, 0xF0, 0xF0, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF};
 
-char StartPrompt[][12] = {"Space", "Invaders", "", "Press SW2", "To Start"};
-char GameOverPrompt[][12] = {"Game Over", "Nice Try!", "", "Your Score"};
-
 enum game_status{OVER,ON};
 enum life_status{DEAD, ALIVE};
 enum enemy_posture{CLOSE, OPEN};
@@ -262,7 +259,7 @@ int main(void){
 void System_Init(void){
   DisableInterrupts();
   PLL_Init(Bus80MHz);                   // set system clock to 80 MHz
-  //SysTick_Init();
+  SysTick_Init();
   Switch_Init();
   //ADC_Init();
   Nokia5110_Init();
@@ -271,23 +268,30 @@ void System_Init(void){
   EnableInterrupts();
 }
 
-// Prints an array of strings of length 12.
-// LCD width is 12 characters.
-void printStringArray(char strArr[][12]) {
-	for(uint8_t i = 0; i < sizeof(*strArr) / sizeof(*strArr[0]); i++) {
-		Nokia5110_SetCursor(0 ,i);
-		Nokia5110_OutString(strArr[i]);
-	}
-}
-
 // Display the game start prompt
 void Start_Prompt(void){
-	printStringArray(StartPrompt);
+	Nokia5110_Clear();
+	Nokia5110_SetCursor(0, 0);
+	Nokia5110_OutString("Space");
+	Nokia5110_SetCursor(0, 1);
+	Nokia5110_OutString("Invaders");
+	Nokia5110_SetCursor(0, 3);
+	Nokia5110_OutString("Press SW2");
+	Nokia5110_SetCursor(0, 4);
+	Nokia5110_OutString("To Start");
 }
 
 // Display the game end prompt for 2 seconds
 void End_Prompt(void){
-	printStringArray(GameOverPrompt);
+	Nokia5110_Clear();
+	Nokia5110_SetCursor(0, 0);
+	Nokia5110_OutString("Game Over");
+	Nokia5110_SetCursor(0, 1);
+	Nokia5110_OutString("Nice Try!");
+	Nokia5110_SetCursor(0, 3);
+	Nokia5110_OutString("Your Score");
+	Nokia5110_SetCursor(0, 4);
+	Nokia5110_OutUDec(score);
 }
 
 // Initialize the game: initialize all sprites and 
@@ -358,15 +362,42 @@ void SysTick_Handler(void){
 
 // Initialize the onboard two switches.
 void Switch_Init(void){
+	volatile unsigned long delay;
+	SYSCTL_RCGC2_R |= 0x00000020; // Activate clock for port F
+	delay = SYSCTL_RCGC2_R;       // Delay
+	GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;   	// Unlock PortF PF0
+	GPIO_PORTF_CR_R |= 0x11;
+	GPIO_PORTF_DIR_R &= ~0x11;    // Make PF4 and PF0 inputs (built-in button)
+	GPIO_PORTF_AFSEL_R &= ~0x11;  // Disable alt funct on PF4 and PF0
+	GPIO_PORTF_DEN_R |= 0x11;     // Enable digital I/O on PF4 and PF0
+	GPIO_PORTF_PCTL_R &= ~0x000F000F; // configure PF4 and PF0 as GPIO
+	GPIO_PORTF_AMSEL_R = 0x11;    // Disable analog functionality on PF4 and PF0
+	GPIO_PORTF_PUR_R |= 0x11;     // Enable weak pull-up on PF4 and PF0
+	GPIO_PORTF_IS_R &= ~0x11;     // PF4 and PF0 are edge-sensitive
+	GPIO_PORTF_IBE_R &= ~0x11;    // PF4 and PF0 are not both edges
+	GPIO_PORTF_IEV_R &= ~0x11;    // PF4 and PF0 falling edge event
+	GPIO_PORTF_ICR_R |= 0x11;     // Clear flag4 and flag0
+	GPIO_PORTF_IM_R |= 0x11;      // Arm interrupt on PF4 and PF0
+	NVIC_PRI7_R = (NVIC_PRI7_R & 0xFF1FFFFF) | 0x00A00000; // Priority 5
+	NVIC_EN0_R |= 0x40000000;      // Enable interrupt 30 in NVIC
 }
 
 // Called on release of either SW1 or SW2.
 void GPIOPortF_Handler(void){
 	// take care of button debounce
+	SysTick_WaitMs(10);
 	
 	// SW1: shoot a bullet if there is none.
+	if (GPIO_PORTF_RIS_R & 0x10) {
+		GPIO_PORTF_ICR_R |= 0x10; // acknowledge flag4
+		Start_Prompt();
+	}
   
 	// SW2: start the game, change the game status to ON
+	if (GPIO_PORTF_RIS_R & 0x01) {
+		GPIO_PORTF_ICR_R |= 0x01; // acknowledge flag 0
+		End_Prompt();
+	}
 }
 
 // Delay function used for game over prompt timing control: 2s
