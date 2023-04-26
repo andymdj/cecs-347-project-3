@@ -34,18 +34,6 @@
 // Onboard sw1(left push button): fire button 
 // Onboard sw2(right push button): game start button
 
-// Blue Nokia 5110
-// ---------------
-// Signal        (Nokia 5110) LaunchPad pin
-// Reset         (RST, pin 1) connected to PA7
-// SSI0Fss       (CE,  pin 2) connected to PA3
-// Data/Command  (DC,  pin 3) connected to PA6
-// SSI0Tx        (Din, pin 4) connected to PA5
-// SSI0Clk       (Clk, pin 5) connected to PA2
-// 3.3V          (Vcc, pin 6) power
-// back light    (BL,  pin 7) not connected, consists of 4 white LEDs which draw ~80mA total
-// Ground        (Gnd, pin 8) ground
-
 // Red SparkFun Nokia 5110 (LCD-10168)
 // -----------------------------------
 // Signal        (Nokia 5110) LaunchPad pin
@@ -62,7 +50,7 @@
 #include "Nokia5110.h"
 #include "PLL.h"
 #include <stdint.h>
-#include "ADC.h"
+//#include "ADC.h"
 #include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
 
@@ -202,7 +190,6 @@ const unsigned char SmallExplosion0[] = {
  0xF0, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0xF0, 0x00, 0xF0, 0xF0, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF};
 
-
 enum game_status{OVER,ON};
 enum life_status{DEAD, ALIVE};
 enum enemy_posture{CLOSE, OPEN};
@@ -238,6 +225,8 @@ void End_Prompt(void);
 void Switch_Init(void);
 void System_Init(void);
 
+void printStringArray(char strArr[][12]);
+
 // global variables used for game control
 uint8_t time_to_draw=0;
 uint8_t game_s=OVER;
@@ -247,10 +236,11 @@ int main(void){
 	System_Init();
 
   while(1){
+		/*
     Start_Prompt();
-    
+
 		while(game_s==OVER){};
-      
+
 		Game_Init(); // all sprites: 3 sprites
     Draw();
     while (game_s==ON) {
@@ -262,6 +252,7 @@ int main(void){
     }
     
     End_Prompt();
+		*/
   }
 }
 
@@ -270,7 +261,7 @@ void System_Init(void){
   PLL_Init(Bus80MHz);                   // set system clock to 80 MHz
   SysTick_Init();
   Switch_Init();
-  ADC_Init();
+  //ADC_Init();
   Nokia5110_Init();
   Nokia5110_ClearBuffer();
 	Nokia5110_DisplayBuffer();      // draw buffer
@@ -279,10 +270,28 @@ void System_Init(void){
 
 // Display the game start prompt
 void Start_Prompt(void){
+	Nokia5110_Clear();
+	Nokia5110_SetCursor(0, 0);
+	Nokia5110_OutString("Space");
+	Nokia5110_SetCursor(0, 1);
+	Nokia5110_OutString("Invaders");
+	Nokia5110_SetCursor(0, 3);
+	Nokia5110_OutString("Press SW2");
+	Nokia5110_SetCursor(0, 4);
+	Nokia5110_OutString("To Start");
 }
 
 // Display the game end prompt for 2 seconds
 void End_Prompt(void){
+	Nokia5110_Clear();
+	Nokia5110_SetCursor(0, 0);
+	Nokia5110_OutString("Game Over");
+	Nokia5110_SetCursor(0, 1);
+	Nokia5110_OutString("Nice Try!");
+	Nokia5110_SetCursor(0, 3);
+	Nokia5110_OutString("Your Score");
+	Nokia5110_SetCursor(0, 4);
+	Nokia5110_OutUDec(score);
 }
 
 // Initialize the game: initialize all sprites and 
@@ -297,6 +306,7 @@ void Game_Init(void){
   // Version 3: add player ship initialization
   
   // Version 4: Add bullet initialization: you can choose Laser or Missile
+	//						and explosion initialization.
 
 }
 
@@ -352,14 +362,42 @@ void SysTick_Handler(void){
 
 // Initialize the onboard two switches.
 void Switch_Init(void){
+	volatile unsigned long delay;
+	SYSCTL_RCGC2_R |= 0x00000020; // Activate clock for port F
+	delay = SYSCTL_RCGC2_R;       // Delay
+	GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;   	// Unlock PortF PF0
+	GPIO_PORTF_CR_R |= 0x11;
+	GPIO_PORTF_DIR_R &= ~0x11;    // Make PF4 and PF0 inputs (built-in button)
+	GPIO_PORTF_AFSEL_R &= ~0x11;  // Disable alt funct on PF4 and PF0
+	GPIO_PORTF_DEN_R |= 0x11;     // Enable digital I/O on PF4 and PF0
+	GPIO_PORTF_PCTL_R &= ~0x000F000F; // configure PF4 and PF0 as GPIO
+	GPIO_PORTF_AMSEL_R = 0x11;    // Disable analog functionality on PF4 and PF0
+	GPIO_PORTF_PUR_R |= 0x11;     // Enable weak pull-up on PF4 and PF0
+	GPIO_PORTF_IS_R &= ~0x11;     // PF4 and PF0 are edge-sensitive
+	GPIO_PORTF_IBE_R &= ~0x11;    // PF4 and PF0 are not both edges
+	GPIO_PORTF_IEV_R &= ~0x11;    // PF4 and PF0 falling edge event
+	GPIO_PORTF_ICR_R |= 0x11;     // Clear flag4 and flag0
+	GPIO_PORTF_IM_R |= 0x11;      // Arm interrupt on PF4 and PF0
+	NVIC_PRI7_R = (NVIC_PRI7_R & 0xFF1FFFFF) | 0x00A00000; // Priority 5
+	NVIC_EN0_R |= 0x40000000;      // Enable interrupt 30 in NVIC
 }
 
-void GPIOPortF_Handler(void){    // called on release of either SW1 or SW2
+// Called on release of either SW1 or SW2.
+void GPIOPortF_Handler(void){
 	// take care of button debounce
+	SysTick_WaitMs(10);
 	
 	// SW1: shoot a bullet if there is none.
+	if (GPIO_PORTF_RIS_R & 0x10) {
+		GPIO_PORTF_ICR_R |= 0x10; // acknowledge flag4
+		Start_Prompt();
+	}
   
 	// SW2: start the game, change the game status to ON
+	if (GPIO_PORTF_RIS_R & 0x01) {
+		GPIO_PORTF_ICR_R |= 0x01; // acknowledge flag 0
+		End_Prompt();
+	}
 }
 
 // Delay function used for game over prompt timing control: 2s

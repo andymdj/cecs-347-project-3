@@ -401,9 +401,14 @@
               <FilePath>.\PLL.c</FilePath>
             </File>
             <File>
-              <FileName>SpaceInvadersV0.c</FileName>
+              <FileName>SpaceInvaders.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SpaceInvadersV0.c</FilePath>
+              <FilePath>.\SpaceInvaders.c</FilePath>
+            </File>
+            <File>
+              <FileName>SysTick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\SysTick.c</FilePath>
             </File>
           </Files>
         </Group>
