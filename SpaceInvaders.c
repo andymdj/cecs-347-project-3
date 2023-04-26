@@ -62,8 +62,8 @@
 #include "Nokia5110.h"
 #include "PLL.h"
 #include <stdint.h>
-#include "ADC.h"
-#include "SysTick.h"  // for SysTick_Init()
+//#include "ADC.h"
+//#include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
 
 // enemy ship that starts at the top of the screen (arms/mouth closed)
@@ -268,9 +268,9 @@ int main(void){
 void System_Init(void){
   DisableInterrupts();
   PLL_Init(Bus80MHz);                   // set system clock to 80 MHz
-  SysTick_Init();
+  //SysTick_Init();
   Switch_Init();
-  ADC_Init();
+  //ADC_Init();
   Nokia5110_Init();
   Nokia5110_ClearBuffer();
 	Nokia5110_DisplayBuffer();      // draw buffer
@@ -297,6 +297,7 @@ void Game_Init(void){
   // Version 3: add player ship initialization
   
   // Version 4: Add bullet initialization: you can choose Laser or Missile
+	//						and explosion initialization.
 
 }
 
