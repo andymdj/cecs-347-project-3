@@ -190,6 +190,8 @@ const unsigned char SmallExplosion0[] = {
  0xF0, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00, 0x00, 0xF0, 0x00, 0xF0, 0xF0, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00,
  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF};
 
+char StartPrompt[][12] = {"Space", "Invaders", "", "Press SW2", "To Start"};
+char GameOverPrompt[][12] = {"Game Over", "Nice Try!", "", "Your Score"};
 
 enum game_status{OVER,ON};
 enum life_status{DEAD, ALIVE};
@@ -226,6 +228,8 @@ void End_Prompt(void);
 void Switch_Init(void);
 void System_Init(void);
 
+void printStringArray(char strArr[][12]);
+
 // global variables used for game control
 uint8_t time_to_draw=0;
 uint8_t game_s=OVER;
@@ -235,10 +239,11 @@ int main(void){
 	System_Init();
 
   while(1){
+		/*
     Start_Prompt();
-    
+
 		while(game_s==OVER){};
-      
+
 		Game_Init(); // all sprites: 3 sprites
     Draw();
     while (game_s==ON) {
@@ -250,6 +255,7 @@ int main(void){
     }
     
     End_Prompt();
+		*/
   }
 }
 
@@ -265,12 +271,23 @@ void System_Init(void){
   EnableInterrupts();
 }
 
+// Prints an array of strings of length 12.
+// LCD width is 12 characters.
+void printStringArray(char strArr[][12]) {
+	for(uint8_t i = 0; i < sizeof(*strArr) / sizeof(*strArr[0]); i++) {
+		Nokia5110_SetCursor(0 ,i);
+		Nokia5110_OutString(strArr[i]);
+	}
+}
+
 // Display the game start prompt
 void Start_Prompt(void){
+	printStringArray(StartPrompt);
 }
 
 // Display the game end prompt for 2 seconds
 void End_Prompt(void){
+	printStringArray(GameOverPrompt);
 }
 
 // Initialize the game: initialize all sprites and 
@@ -343,7 +360,8 @@ void SysTick_Handler(void){
 void Switch_Init(void){
 }
 
-void GPIOPortF_Handler(void){    // called on release of either SW1 or SW2
+// Called on release of either SW1 or SW2.
+void GPIOPortF_Handler(void){
 	// take care of button debounce
 	
 	// SW1: shoot a bullet if there is none.
