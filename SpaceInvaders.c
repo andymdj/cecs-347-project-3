@@ -193,6 +193,8 @@ const unsigned char SmallExplosion0[] = {
 enum game_status{OVER,ON};
 enum life_status{DEAD, ALIVE};
 enum enemy_posture{CLOSE, OPEN};
+uint8_t posture_frame_count = 0;
+uint8_t current_posture = CLOSE;
 
 #define PLAYERW     ((unsigned char)PlayerShip0[18])
 #define PLAYERH     ((unsigned char)PlayerShip0[22])
@@ -201,6 +203,7 @@ enum enemy_posture{CLOSE, OPEN};
 #define LASERW      2
 #define BULLETH     LASERH
 #define BULLETW     LASERW
+#define POSTURE_FRAMES	5
 
 struct State {
   unsigned long x;      // x coordinate
@@ -303,7 +306,7 @@ void Game_Init(void){
 	for(uint8_t i = 0; i < 3; i++) {
 		Enemy[i].x = i * 16;
 		Enemy[i].y = 10;
-		Enemy[i].image = SmallEnemyPointA[i];
+		Enemy[i].image = SmallEnemyPointB[i];
 		Enemy[i].life = ALIVE;
 	}
 
@@ -317,6 +320,7 @@ void Game_Init(void){
 
 // Update positions for all *alive* sprites.
 void Move(void){
+	// Check if all enemies are dead
   uint8_t num_life = 0;
 	for(uint8_t i = 0; i < 3; i++) {
 		if(Enemy[i].life == ALIVE) {
@@ -326,7 +330,15 @@ void Move(void){
 	if(num_life == 0) {
 		game_s = OVER;
 	}
-    
+
+	// Update posture frame counter and current posture
+	posture_frame_count++;
+	if(posture_frame_count >= POSTURE_FRAMES) {
+		posture_frame_count = 0;
+		if(current_posture == CLOSE) current_posture = OPEN;
+		else current_posture = CLOSE;
+	}
+
 	// Move Bullet
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
@@ -334,6 +346,10 @@ void Move(void){
 		if(Enemy[i].life == ALIVE) {
 			// Move enemy to the right
 			Enemy[i].x++;
+
+			// Update enemy posture
+			if(current_posture == CLOSE) Enemy[i].image = SmallEnemyPointA[i];
+			else Enemy[i].image = SmallEnemyPointB[i];
 
 			// If enemy reaches the far right, kill it
 			if(Enemy[i].x > 83) {
@@ -353,7 +369,6 @@ void Move(void){
 // clear display and update the screen with the 
 // current positions of all sprites that are alive.
 void Draw(void){
-	static uint8_t enemy_posture = CLOSE;  // enemy start with close posture: SmallEnemyPointA
 	uint8_t i;
 
 	if (game_s==OVER) return;
