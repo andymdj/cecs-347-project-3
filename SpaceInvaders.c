@@ -236,7 +236,6 @@ int main(void){
 	System_Init();
 
   while(1){
-		/*
     Start_Prompt();
 
 		while(game_s==OVER){};
@@ -252,7 +251,6 @@ int main(void){
     }
     
     End_Prompt();
-		*/
   }
 }
 
@@ -292,16 +290,23 @@ void End_Prompt(void){
 	Nokia5110_OutString("Your Score");
 	Nokia5110_SetCursor(0, 4);
 	Nokia5110_OutUDec(score);
+	SysTick_WaitMs(3000);
 }
 
 // Initialize the game: initialize all sprites and 
 // reset refresh control and game status.
 void Game_Init(void){
   time_to_draw=0;
-  game_s=OVER;
   score=0; // reset score
-	
-  // Version 2: add enemy initialization with close posture.
+
+	// Version 2: add enemy initialization with close posture.
+	for(uint8_t i = 0; i < 3; i++) {
+		Enemy[i].x = i * 16;
+		Enemy[i].y = 10;
+		Enemy[i].image = SmallEnemyPointA[i];
+		Enemy[i].life = ALIVE;
+	}
+
  
   // Version 3: add player ship initialization
   
@@ -313,10 +318,29 @@ void Game_Init(void){
 // Update positions for all *alive* sprites.
 void Move(void){
   uint8_t num_life = 0;
+	for(uint8_t i = 0; i < 3; i++) {
+		if(Enemy[i].life == ALIVE) {
+			num_life++;
+		}
+	}
+	if(num_life == 0) {
+		game_s = OVER;
+	}
     
 	// Move Bullet
 
-  // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit   
+  // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
+	for(uint8_t i = 0; i < 3; i++) {
+		if(Enemy[i].life == ALIVE) {
+			// Move enemy to the right
+			Enemy[i].x++;
+
+			// If enemy reaches the far right, kill it
+			if(Enemy[i].x > 83) {
+				Enemy[i].life = DEAD;
+			}
+		}
+	}
   
 	// Read ADC and update player ship position: only x coordinate will be changed. 
 
@@ -329,18 +353,19 @@ void Move(void){
 // clear display and update the screen with the 
 // current positions of all sprites that are alive.
 void Draw(void){
-  static uint8_t enemy_posture = CLOSE;  // enemy start with close posture: SmallEnemyPointA
-  uint8_t i;
-  
-  if (game_s==OVER) return;
-  
-  Nokia5110_ClearBuffer();
-  
-  // Update live enemies' positions in display buffer
-  for(i=0;i<3;i++){
-    if(Enemy[i].life == ALIVE){
-    }
-  }
+	static uint8_t enemy_posture = CLOSE;  // enemy start with close posture: SmallEnemyPointA
+	uint8_t i;
+
+	if (game_s==OVER) return;
+
+	Nokia5110_ClearBuffer();
+
+	// Update live enemies' positions in display buffer
+	for(i=0;i<3;i++){
+		if(Enemy[i].life == ALIVE){
+			Nokia5110_PrintBMP(Enemy[i].x, Enemy[i].y, Enemy[i].image, 0);
+		}
+	}
   
   // Update the player ship position in display buffer
   
@@ -390,13 +415,12 @@ void GPIOPortF_Handler(void){
 	// SW1: shoot a bullet if there is none.
 	if (GPIO_PORTF_RIS_R & 0x10) {
 		GPIO_PORTF_ICR_R |= 0x10; // acknowledge flag4
-		Start_Prompt();
 	}
   
 	// SW2: start the game, change the game status to ON
 	if (GPIO_PORTF_RIS_R & 0x01) {
 		GPIO_PORTF_ICR_R |= 0x01; // acknowledge flag 0
-		End_Prompt();
+		game_s=ON;
 	}
 }
 
