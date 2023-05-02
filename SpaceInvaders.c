@@ -50,7 +50,7 @@
 #include "Nokia5110.h"
 #include "PLL.h"
 #include <stdint.h>
-//#include "ADC.h"
+#include "ADC.h"
 #include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
 
@@ -262,7 +262,7 @@ void System_Init(void){
   PLL_Init(Bus80MHz);                   // set system clock to 80 MHz
   SysTick_Init();
   Switch_Init();
-  //ADC_Init();
+  ADC_Init();
   Nokia5110_Init();
   Nokia5110_ClearBuffer();
 	Nokia5110_DisplayBuffer();      // draw buffer
@@ -362,7 +362,8 @@ void Move(void){
 		}
 	}
   
-	// Read ADC and update player ship position: only x coordinate will be changed. 
+	// Read ADC and update player ship position: only x coordinate will be changed.
+	PlayerShip.x = (unsigned long)(66.0 * ((float)ADC0_InSeq3() / 4095.0));
 
   if (num_life==0) {
     game_s = OVER;
