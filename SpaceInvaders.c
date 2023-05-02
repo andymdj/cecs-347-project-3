@@ -312,6 +312,10 @@ void Game_Init(void){
 
  
   // Version 3: add player ship initialization
+	PlayerShip.x = 0;
+	PlayerShip.y = 47;
+	PlayerShip.image = PlayerShip0;
+	PlayerShip.life = ALIVE;
   
   // Version 4: Add bullet initialization: you can choose Laser or Missile
 	//						and explosion initialization.
@@ -383,6 +387,7 @@ void Draw(void){
 	}
   
   // Update the player ship position in display buffer
+	Nokia5110_PrintBMP(PlayerShip.x, PlayerShip.y, PlayerShip.image, 0);
   
   // Update the bullet position in display buffer if there is one.
   if (Bullet.life==ALIVE) {
