@@ -206,7 +206,8 @@ uint8_t current_posture = CLOSE;
 #define BULLETH     LASERH
 #define BULLETW     LASERW
 #define POSTURE_FRAMES	5
-#define NUM_ENEMIES 5 // Max of 5
+#define ENEMIES_PER_ROW 4
+#define NUM_ENEMIES 12
 
 struct State {
   unsigned long x;      // x coordinate
@@ -307,8 +308,9 @@ void Game_Init(void){
 
 	// Version 2: add enemy initialization with close posture.
 	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
-		Enemy[i].x = i * ENEMY10W + 1;
-		Enemy[i].y = ENEMY10H;
+		Enemy[i].x = (i % ENEMIES_PER_ROW) * ENEMY10W + 1;
+		if((i / ENEMIES_PER_ROW) % 2 == 1) Enemy[i].x += ENEMY10W;
+		Enemy[i].y = ENEMY10H * ((i / ENEMIES_PER_ROW) + 1);
 		Enemy[i].image = SmallEnemyPointB[i % 3];
 		Enemy[i].life = ALIVE;
 	}
