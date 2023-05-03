@@ -199,6 +199,7 @@ uint8_t current_posture = CLOSE;
 #define PLAYERW     ((unsigned char)PlayerShip0[18])
 #define PLAYERH     ((unsigned char)PlayerShip0[22])
 #define ENEMY10W    16  
+#define ENEMY10H    10
 #define LASERH      9
 #define LASERW      2
 #define BULLETH     LASERH
@@ -304,8 +305,8 @@ void Game_Init(void){
 
 	// Version 2: add enemy initialization with close posture.
 	for(uint8_t i = 0; i < 3; i++) {
-		Enemy[i].x = i * 16;
-		Enemy[i].y = 10;
+		Enemy[i].x = i * ENEMY10W + 1;
+		Enemy[i].y = ENEMY10H;
 		Enemy[i].image = SmallEnemyPointB[i];
 		Enemy[i].life = ALIVE;
 	}
@@ -347,17 +348,26 @@ void Move(void){
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
 	for(uint8_t i = 0; i < 3; i++) {
+		// If enemy is at the 4th level and at far left, kill it
+		if(Enemy[i].y == ENEMY10H * 4 && Enemy[i].x == 1) {
+			Enemy[i].life = DEAD;
+		}
+
 		if(Enemy[i].life == ALIVE) {
-			// Move enemy to the right
-			Enemy[i].x++;
+			// Move enemy left or right depending on height
+			if((Enemy[i].y / ENEMY10H) % 2 == 0) {
+				Enemy[i].x--;
+			} else {
+				Enemy[i].x++;
+			}
 
 			// Update enemy posture
 			if(current_posture == CLOSE) Enemy[i].image = SmallEnemyPointA[i];
 			else Enemy[i].image = SmallEnemyPointB[i];
 
-			// If enemy reaches the far right, kill it
-			if(Enemy[i].x > 83) {
-				Enemy[i].life = DEAD;
+			// If enemy reaches the far right, move to next level
+			if(Enemy[i].x == 83 - ENEMY10W || Enemy[i].x == 0) {
+				Enemy[i].y += ENEMY10H;
 			}
 		}
 	}
