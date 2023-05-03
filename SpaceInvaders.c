@@ -50,6 +50,7 @@
 #include "Nokia5110.h"
 #include "PLL.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include "ADC.h"
 #include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
@@ -229,7 +230,7 @@ void End_Prompt(void);
 void Switch_Init(void);
 void System_Init(void);
 
-void printStringArray(char strArr[][12]);
+bool bullet_overlaps_enemy(uint8_t);
 
 // global variables used for game control
 uint8_t time_to_draw=0;
@@ -373,10 +374,17 @@ void Move(void){
 			if(current_posture == CLOSE) Enemy[i].image = SmallEnemyPointA[i];
 			else Enemy[i].image = SmallEnemyPointB[i];
 
-			// If enemy reaches the far right, move to next level
+			// If enemy reaches the far edge, move to next level
 			if(Enemy[i].x == 83 - ENEMY10W || Enemy[i].x == 0) {
 				Enemy[i].y += ENEMY10H;
 			}
+		}
+
+		// If enemy overlaps the bullet, kill it
+		if(Bullet.life == ALIVE && bullet_overlaps_enemy(i)) {
+			Bullet.life = DEAD;
+			Enemy[i].life = DEAD;
+			score++;
 		}
 	}
   
@@ -480,4 +488,14 @@ void Delay100ms(unsigned long count){
     }
     count--;
   }
+}
+
+bool bullet_overlaps_enemy(uint8_t i) {
+	if (Bullet.x > Enemy[i].x + ENEMY10W || Enemy[i].x > Bullet.x + BULLETW)
+        return false;
+
+	if (Bullet.y > Enemy[i].y + ENEMY10H|| Enemy[i].y > Bullet.y + BULLETH)
+        return false;
+
+	return true;
 }
