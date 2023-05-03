@@ -320,7 +320,8 @@ void Game_Init(void){
   
   // Version 4: Add bullet initialization: you can choose Laser or Missile
 	//						and explosion initialization.
-
+	Bullet.image = Laser0;
+	Bullet.life = DEAD;
 }
 
 // Update positions for all *alive* sprites.
@@ -345,6 +346,13 @@ void Move(void){
 	}
 
 	// Move Bullet
+	if(Bullet.life == ALIVE) {
+		if(Bullet.y == 0 + BULLETH) {
+			Bullet.life = DEAD;
+		} else {
+			Bullet.y--;
+		}
+	}
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
 	for(uint8_t i = 0; i < 3; i++) {
@@ -402,6 +410,7 @@ void Draw(void){
   
   // Update the bullet position in display buffer if there is one.
   if (Bullet.life==ALIVE) {
+		Nokia5110_PrintBMP(Bullet.x, Bullet.y, Bullet.image, 0);
   }
 
   Nokia5110_DisplayBuffer();      // Update the display with information in display buffer
@@ -446,6 +455,11 @@ void GPIOPortF_Handler(void){
 	// SW1: shoot a bullet if there is none.
 	if (GPIO_PORTF_RIS_R & 0x10) {
 		GPIO_PORTF_ICR_R |= 0x10; // acknowledge flag4
+		if(Bullet.life != ALIVE) {
+			Bullet.life = ALIVE;
+			Bullet.x = PlayerShip.x + (PLAYERW / 2);
+			Bullet.y = 47 - 9;
+		}
 	}
   
 	// SW2: start the game, change the game status to ON
