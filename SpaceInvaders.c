@@ -363,6 +363,11 @@ void Move(void){
 			Enemy[i].life = DEAD;
 		}
 
+		// If enemy is an explosion from last frame, kill it
+		if(Enemy[i].image == SmallExplosion0) {
+			Enemy[i].life = DEAD;
+		}
+
 		if(Enemy[i].life == ALIVE) {
 			// Move enemy left or right depending on height
 			if((Enemy[i].y / ENEMY10H) % 2 == 0) {
@@ -384,7 +389,7 @@ void Move(void){
 		// If enemy overlaps the bullet, kill it
 		if(Bullet.life == ALIVE && bullet_overlaps_enemy(i)) {
 			Bullet.life = DEAD;
-			Enemy[i].life = DEAD;
+			Enemy[i].image = SmallExplosion0;
 			score++;
 		}
 	}
@@ -409,7 +414,7 @@ void Draw(void){
 
 	// Update live enemies' positions in display buffer
 	for(i = 0; i < NUM_ENEMIES; i++){
-		if(Enemy[i].life == ALIVE){
+		if(Enemy[i].life == ALIVE) {
 			Nokia5110_PrintBMP(Enemy[i].x, Enemy[i].y, Enemy[i].image, 0);
 		}
 	}
