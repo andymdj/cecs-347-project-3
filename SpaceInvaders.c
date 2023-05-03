@@ -50,6 +50,7 @@
 #include "Nokia5110.h"
 #include "PLL.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include "ADC.h"
 #include "SysTick.h"  // for SysTick_Init()
 //#include "Switches.h" // optional module for teh two onboard switches
@@ -199,11 +200,13 @@ uint8_t current_posture = CLOSE;
 #define PLAYERW     ((unsigned char)PlayerShip0[18])
 #define PLAYERH     ((unsigned char)PlayerShip0[22])
 #define ENEMY10W    16  
+#define ENEMY10H    10
 #define LASERH      9
 #define LASERW      2
 #define BULLETH     LASERH
 #define BULLETW     LASERW
 #define POSTURE_FRAMES	5
+#define NUM_ENEMIES 5 // Max of 5
 
 struct State {
   unsigned long x;      // x coordinate
@@ -212,7 +215,7 @@ struct State {
   long life;            // 0=dead, 1=alive
 };          
 typedef struct State STyp;
-STyp Enemy[3];
+STyp Enemy[NUM_ENEMIES];
 STyp PlayerShip;
 STyp Bullet;
 
@@ -228,7 +231,7 @@ void End_Prompt(void);
 void Switch_Init(void);
 void System_Init(void);
 
-void printStringArray(char strArr[][12]);
+bool bullet_overlaps_enemy(uint8_t);
 
 // global variables used for game control
 uint8_t time_to_draw=0;
@@ -303,10 +306,10 @@ void Game_Init(void){
   score=0; // reset score
 
 	// Version 2: add enemy initialization with close posture.
-	for(uint8_t i = 0; i < 3; i++) {
-		Enemy[i].x = i * 16;
-		Enemy[i].y = 10;
-		Enemy[i].image = SmallEnemyPointB[i];
+	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
+		Enemy[i].x = i * ENEMY10W + 1;
+		Enemy[i].y = ENEMY10H;
+		Enemy[i].image = SmallEnemyPointB[i % 3];
 		Enemy[i].life = ALIVE;
 	}
 
@@ -319,14 +322,15 @@ void Game_Init(void){
   
   // Version 4: Add bullet initialization: you can choose Laser or Missile
 	//						and explosion initialization.
-
+	Bullet.image = Laser0;
+	Bullet.life = DEAD;
 }
 
 // Update positions for all *alive* sprites.
 void Move(void){
 	// Check if all enemies are dead
   uint8_t num_life = 0;
-	for(uint8_t i = 0; i < 3; i++) {
+	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
 		if(Enemy[i].life == ALIVE) {
 			num_life++;
 		}
@@ -344,21 +348,49 @@ void Move(void){
 	}
 
 	// Move Bullet
+	if(Bullet.life == ALIVE) {
+		if(Bullet.y < 0 + BULLETH) {
+			Bullet.life = DEAD;
+		} else {
+			Bullet.y -= 2;
+		}
+	}
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
-	for(uint8_t i = 0; i < 3; i++) {
+	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
+		// If enemy is at the 4th level and at far left, kill it
+		if(Enemy[i].y == ENEMY10H * 4 && Enemy[i].x == 1) {
+			Enemy[i].life = DEAD;
+		}
+
+		// If enemy is an explosion from last frame, kill it
+		if(Enemy[i].image == SmallExplosion0) {
+			Enemy[i].life = DEAD;
+		}
+
 		if(Enemy[i].life == ALIVE) {
-			// Move enemy to the right
-			Enemy[i].x++;
+			// Move enemy left or right depending on height
+			if((Enemy[i].y / ENEMY10H) % 2 == 0) {
+				Enemy[i].x--;
+			} else {
+				Enemy[i].x++;
+			}
 
 			// Update enemy posture
-			if(current_posture == CLOSE) Enemy[i].image = SmallEnemyPointA[i];
-			else Enemy[i].image = SmallEnemyPointB[i];
+			if(current_posture == CLOSE) Enemy[i].image = SmallEnemyPointA[i % 3];
+			else Enemy[i].image = SmallEnemyPointB[i % 3];
 
-			// If enemy reaches the far right, kill it
-			if(Enemy[i].x > 83) {
-				Enemy[i].life = DEAD;
+			// If enemy reaches the far edge, move to next level
+			if(Enemy[i].x == 83 - ENEMY10W || Enemy[i].x == 0) {
+				Enemy[i].y += ENEMY10H;
 			}
+		}
+
+		// If enemy overlaps the bullet, kill it
+		if(Bullet.life == ALIVE && bullet_overlaps_enemy(i)) {
+			Bullet.life = DEAD;
+			Enemy[i].image = SmallExplosion0;
+			score++;
 		}
 	}
   
@@ -381,8 +413,8 @@ void Draw(void){
 	Nokia5110_ClearBuffer();
 
 	// Update live enemies' positions in display buffer
-	for(i=0;i<3;i++){
-		if(Enemy[i].life == ALIVE){
+	for(i = 0; i < NUM_ENEMIES; i++){
+		if(Enemy[i].life == ALIVE) {
 			Nokia5110_PrintBMP(Enemy[i].x, Enemy[i].y, Enemy[i].image, 0);
 		}
 	}
@@ -392,6 +424,7 @@ void Draw(void){
   
   // Update the bullet position in display buffer if there is one.
   if (Bullet.life==ALIVE) {
+		Nokia5110_PrintBMP(Bullet.x, Bullet.y, Bullet.image, 0);
   }
 
   Nokia5110_DisplayBuffer();      // Update the display with information in display buffer
@@ -436,6 +469,11 @@ void GPIOPortF_Handler(void){
 	// SW1: shoot a bullet if there is none.
 	if (GPIO_PORTF_RIS_R & 0x10) {
 		GPIO_PORTF_ICR_R |= 0x10; // acknowledge flag4
+		if(Bullet.life != ALIVE) {
+			Bullet.life = ALIVE;
+			Bullet.x = PlayerShip.x + (PLAYERW / 2);
+			Bullet.y = 47 - 9;
+		}
 	}
   
 	// SW2: start the game, change the game status to ON
@@ -456,4 +494,17 @@ void Delay100ms(unsigned long count){
     }
     count--;
   }
+}
+
+bool bullet_overlaps_enemy(uint8_t i) {
+	if(Enemy[i].life == DEAD)
+		return false;
+
+	if(Bullet.x > Enemy[i].x + ENEMY10W || Enemy[i].x > Bullet.x + BULLETW)
+        return false;
+
+	if(Bullet.y > Enemy[i].y + ENEMY10H|| Enemy[i].y > Bullet.y + BULLETH)
+        return false;
+
+	return true;
 }
