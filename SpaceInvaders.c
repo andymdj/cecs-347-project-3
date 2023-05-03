@@ -491,10 +491,13 @@ void Delay100ms(unsigned long count){
 }
 
 bool bullet_overlaps_enemy(uint8_t i) {
-	if (Bullet.x > Enemy[i].x + ENEMY10W || Enemy[i].x > Bullet.x + BULLETW)
+	if(Enemy[i].life == DEAD)
+		return false;
+
+	if(Bullet.x > Enemy[i].x + ENEMY10W || Enemy[i].x > Bullet.x + BULLETW)
         return false;
 
-	if (Bullet.y > Enemy[i].y + ENEMY10H|| Enemy[i].y > Bullet.y + BULLETH)
+	if(Bullet.y > Enemy[i].y + ENEMY10H|| Enemy[i].y > Bullet.y + BULLETH)
         return false;
 
 	return true;
