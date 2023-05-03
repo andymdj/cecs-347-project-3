@@ -348,10 +348,10 @@ void Move(void){
 
 	// Move Bullet
 	if(Bullet.life == ALIVE) {
-		if(Bullet.y == 0 + BULLETH) {
+		if(Bullet.y < 0 + BULLETH) {
 			Bullet.life = DEAD;
 		} else {
-			Bullet.y--;
+			Bullet.y -= 2;
 		}
 	}
 
