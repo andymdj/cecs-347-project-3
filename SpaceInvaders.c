@@ -207,7 +207,7 @@ uint8_t current_posture = CLOSE;
 #define BULLETW     LASERW
 #define POSTURE_FRAMES	5
 #define ENEMIES_PER_ROW 4
-#define NUM_ENEMIES 12
+#define NUM_ENEMIES 8
 
 struct State {
   unsigned long x;      // x coordinate
@@ -359,7 +359,7 @@ void Move(void){
 	}
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
-	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
+	for(int8_t i = NUM_ENEMIES - 1; i >= 0; i--) {
 		// If enemy is at the 4th level and at far left, kill it
 		if(Enemy[i].y == ENEMY10H * 4 && Enemy[i].x == 1) {
 			Enemy[i].life = DEAD;
