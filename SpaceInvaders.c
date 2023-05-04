@@ -206,7 +206,8 @@ uint8_t current_posture = CLOSE;
 #define BULLETH     LASERH
 #define BULLETW     LASERW
 #define POSTURE_FRAMES	5
-#define NUM_ENEMIES 5 // Max of 5
+#define ENEMIES_PER_ROW 4
+#define NUM_ENEMIES 8
 
 struct State {
   unsigned long x;      // x coordinate
@@ -307,8 +308,9 @@ void Game_Init(void){
 
 	// Version 2: add enemy initialization with close posture.
 	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
-		Enemy[i].x = i * ENEMY10W + 1;
-		Enemy[i].y = ENEMY10H;
+		Enemy[i].x = (i % ENEMIES_PER_ROW) * ENEMY10W + 1;
+		if((i / ENEMIES_PER_ROW) % 2 == 1) Enemy[i].x += ENEMY10W;
+		Enemy[i].y = ENEMY10H * ((i / ENEMIES_PER_ROW) + 1);
 		Enemy[i].image = SmallEnemyPointB[i % 3];
 		Enemy[i].life = ALIVE;
 	}
@@ -357,7 +359,7 @@ void Move(void){
 	}
 
   // Move enemies, check life or dead: dead if right side reaches right screen border or detect a hit
-	for(uint8_t i = 0; i < NUM_ENEMIES; i++) {
+	for(int8_t i = NUM_ENEMIES - 1; i >= 0; i--) {
 		// If enemy is at the 4th level and at far left, kill it
 		if(Enemy[i].y == ENEMY10H * 4 && Enemy[i].x == 1) {
 			Enemy[i].life = DEAD;
